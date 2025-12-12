@@ -30,6 +30,9 @@ export default function LoginPage() {
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data));
 
+            // Set cookie for middleware access
+            document.cookie = `auth-token=${data.token}; path=/; max-age=86400; secure; samesite=strict`;
+
             // Redirect based on role
             if (data.role === "admin") router.push("/admin");
             else if (data.role === "teacher") router.push("/teacher");

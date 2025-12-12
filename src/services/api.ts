@@ -139,4 +139,9 @@ export const resourcesAPI = {
     delete: (id: string) => api.delete(`/resources/${id}`),
 };
 
+// Student Dashboard API
+export const studentAPI = {
+    getDashboard: () => api.get('/students/dashboard'),
+};
+
 export default api;

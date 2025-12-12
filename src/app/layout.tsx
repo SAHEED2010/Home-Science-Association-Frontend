@@ -47,7 +47,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="preload" href="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://hsa-primary.edu.ng/register" as="image" />
+        <link rel="preload" href="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://hsa-primary.edu.ng/register" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body
