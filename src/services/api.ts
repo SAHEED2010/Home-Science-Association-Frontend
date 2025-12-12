@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL =
     process.env.NEXT_PUBLIC_API_URL ||
-    'https://home-science-association-backend.onrender.com/api';
+    'https://home-science-association-backend.onrender.com';
 
 const api = axios.create({
     baseURL: API_URL,
