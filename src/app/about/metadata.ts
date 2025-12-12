@@ -8,6 +8,3 @@ export const metadata: Metadata = {
         description: 'Learn about our mission, vision, and commitment to excellence in education.',
     },
 }
-
-// Export the default about component
-export { default } from './about-content'
