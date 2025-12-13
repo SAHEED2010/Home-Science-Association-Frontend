@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const API_URL =
     process.env.NEXT_PUBLIC_API_URL ||
-    'https://home-science-association-backend.onrender.com';
+    'https://home-science-association-backend.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -77,6 +77,7 @@ export const resultsAPI = {
     create: (data: any) => api.post('/results', data),
     update: (id: string, data: any) => api.put(`/results/${id}`, data),
     delete: (id: string) => api.delete(`/results/${id}`),
+    recordBulk: (data: any) => api.post('/results/bulk', data),
 };
 
 // Payments API
@@ -127,6 +128,17 @@ export const authAPI = {
     register: (userData: any) => api.post('/auth/register', userData),
     forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
     resetPassword: (token: string, password: string) => api.post('/auth/reset-password', { token, password }),
+    generate2FA: () => api.post('/auth/2fa/generate'),
+    verify2FA: (data: { token: string }) => api.post('/auth/2fa/verify', data),
+};
+
+// Assignments API
+export const assignmentsAPI = {
+    getAll: (params?: any) => api.get('/assignments', { params }),
+    getById: (id: string) => api.get(`/assignments/${id}`),
+    create: (data: any) => api.post('/assignments', data),
+    update: (id: string, data: any) => api.put(`/assignments/${id}`, data),
+    delete: (id: string) => api.delete(`/assignments/${id}`),
 };
 
 // Resources API
@@ -142,6 +154,11 @@ export const resourcesAPI = {
 // Student Dashboard API
 export const studentAPI = {
     getDashboard: () => api.get('/students/dashboard'),
+};
+
+// Analytics API
+export const analyticsAPI = {
+    getAdminStats: () => api.get('/analytics/admin'),
 };
 
 export default api;

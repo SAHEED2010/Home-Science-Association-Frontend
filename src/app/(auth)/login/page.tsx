@@ -6,16 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import Image from "next/image";
-import { Mail, Lock, Building2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Building2, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LoginPage() {
     const router = useRouter();
+    const [step, setStep] = useState<"login" | "2fa">("login");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [branch, setBranch] = useState("Main");
+    const [code, setCode] = useState(""); // 2FA Code
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [passwordVisible, setPasswordVisible] = useState(false);
@@ -26,7 +28,24 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const { data } = await api.post("/auth/login", { email, password, branch });
+            // Payload depends on step
+            const payload = {
+                email,
+                password,
+                branch,
+                code: step === "2fa" ? code : undefined
+            };
+
+            const { data } = await api.post("/auth/login", payload);
+
+            // Check if 2FA is required
+            if (data.twoFactorRequired) {
+                setStep("2fa");
+                setLoading(false);
+                return;
+            }
+
+            // Success - Store Token
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data));
 
@@ -47,7 +66,11 @@ export default function LoginPage() {
                 setError(err.response?.data?.message || "Login failed. Please check your credentials.");
             }
         } finally {
-            setLoading(false);
+            if (step === "login" && !error) {
+                // Keep loading true if just switching steps? No, we set False if 2fa required.
+            } else {
+                setLoading(false);
+            }
         }
     };
 
@@ -96,9 +119,13 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-2 text-center lg:text-left">
-                        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Sign in to your account</h2>
+                        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                            {step === "login" ? "Sign in to your account" : "Two-Factor Verification"}
+                        </h2>
                         <p className="text-sm sm:text-base text-muted-foreground">
-                            Enter your credentials below to access your dashboard
+                            {step === "login"
+                                ? "Enter your credentials below to access your dashboard"
+                                : "Enter the 6-digit code from your authenticator app"}
                         </p>
                     </div>
 
@@ -109,86 +136,117 @@ export default function LoginPage() {
                             </div>
                         )}
 
-                        <div className="space-y-2">
-                            <Label htmlFor="branch">Branch</Label>
-                            <Select value={branch} onValueChange={setBranch}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select Branch" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Main">Main Branch</SelectItem>
-                                    <SelectItem value="Lekki">Lekki Branch</SelectItem>
-                                    <SelectItem value="Abuja">Abuja Branch</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {step === "login" && (
+                            <>
+                                <div className="space-y-2">
+                                    <Label htmlFor="branch">Branch</Label>
+                                    <Select value={branch} onValueChange={setBranch}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Branch" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Main">Main Branch</SelectItem>
+                                            <SelectItem value="Lekki">Lekki Branch</SelectItem>
+                                            <SelectItem value="Abuja">Abuja Branch</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="email"
-                                    placeholder="m@example.com"
-                                    type="email"
-                                    className="pl-9"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    suppressHydrationWarning
-                                />
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="email"
+                                            placeholder="m@example.com"
+                                            type="email"
+                                            className="pl-9"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            suppressHydrationWarning
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="password">Password</Label>
+                                        <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                                            Forgot password?
+                                        </Link>
+                                    </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            id="password"
+                                            type={passwordVisible ? "text" : "password"}
+                                            className="pl-9 pr-10"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            suppressHydrationWarning
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setPasswordVisible(!passwordVisible)}
+                                            className="absolute right-3 top-3 text-muted-foreground hover:text-primary focus:outline-none"
+                                        >
+                                            {passwordVisible ? (
+                                                <EyeOff className="h-4 w-4" />
+                                            ) : (
+                                                <Eye className="h-4 w-4" />
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {step === "2fa" && (
+                            <div className="space-y-2">
+                                <Label htmlFor="code">Authentication Code</Label>
+                                <div className="relative">
+                                    <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="code"
+                                        placeholder="123456"
+                                        type="text"
+                                        maxLength={6}
+                                        className="pl-9 text-center text-lg tracking-widest"
+                                        value={code}
+                                        onChange={(e) => setCode(e.target.value)}
+                                        required
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="text-center mt-2">
+                                    <Button variant="link" size="sm" type="button" onClick={() => setStep("login")}>
+                                        Back to Login
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-                                    Forgot password?
-                                </Link>
-                            </div>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="password"
-                                    type={passwordVisible ? "text" : "password"}
-                                    className="pl-9 pr-10"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    suppressHydrationWarning
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setPasswordVisible(!passwordVisible)}
-                                    className="absolute right-3 top-3 text-muted-foreground hover:text-primary focus:outline-none"
-                                >
-                                    {passwordVisible ? (
-                                        <EyeOff className="h-4 w-4" />
-                                    ) : (
-                                        <Eye className="h-4 w-4" />
-                                    )}
-                                </button>
-                            </div>
-                        </div>
+                        )}
 
                         <Button className="w-full h-11 sm:h-12 text-base" type="submit" disabled={loading}>
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
-                                    Signing In...
+                                    {step === "login" ? "Signing In..." : "Verifying & Signing In..."}
                                 </>
                             ) : (
-                                "Sign In"
+                                step === "login" ? "Sign In" : "Verify Code"
                             )}
                         </Button>
                     </form>
 
-                    <div className="text-center text-sm sm:text-base text-muted-foreground">
-                        Don&apos;t have an account?{" "}
-                        <Link href="/register" className="font-semibold text-primary hover:underline">
-                            Apply Now
-                        </Link>
-                    </div>
+                    {step === "login" && (
+                        <div className="text-center text-sm sm:text-base text-muted-foreground">
+                            Don&apos;t have an account?{" "}
+                            <Link href="/register" className="font-semibold text-primary hover:underline">
+                                Apply Now
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

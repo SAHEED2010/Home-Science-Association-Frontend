@@ -18,8 +18,10 @@ import {
     LogOut,
     Video,
     User,
-    X
+    X,
+    BarChart
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const adminNavItems = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -30,9 +32,10 @@ const adminNavItems = [
     { label: "Attendance", href: "/admin/attendance", icon: CalendarCheck },
     { label: "Assignments", href: "/admin/assignments", icon: FileText },
     { label: "Exams & Grades", href: "/admin/exams", icon: GraduationCap },
-    { label: "Results", href: "/admin/results", icon: GraduationCap },
     { label: "Fees & Payments", href: "/admin/fees", icon: CreditCard },
     { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
+    { label: "E-Library", href: "/admin/resources", icon: BookOpen },
+    { label: "Reports", href: "/admin/reports", icon: BarChart },
     { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
@@ -149,62 +152,75 @@ export function Sidebar({ mobileOpen = false, onClose }: SidebarProps) {
             </aside>
 
             {/* Mobile Sidebar */}
-            {mobileOpen && (
-                <>
-                    <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={onClose} />
-                    <aside className="fixed left-0 top-0 bottom-0 w-64 flex-col border-r bg-card z-50 md:hidden">
-                        <div className="flex h-16 items-center justify-between border-b px-6">
-                            <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-                                <div className="relative h-8 w-8">
-                                    <Image src="/images/logo.png" alt="HSA Logo" fill className="object-contain" />
-                                </div>
-                                <span>HSA Portal</span>
-                            </Link>
-                            <button onClick={onClose} className="p-2 hover:bg-accent rounded-md">
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto py-4">
-                            <nav className="grid gap-1 px-2">
-                                {navItems.map((item, index) => {
-                                    const isActive = pathname === item.href;
-                                    return (
-                                        <Link
-                                            key={index}
-                                            href={item.href}
-                                            onClick={onClose}
-                                            className={cn(
-                                                "flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors",
-                                                isActive
-                                                    ? "bg-primary/10 text-primary"
-                                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                                            )}
-                                        >
-                                            <item.icon className="h-5 w-5" />
-                                            {item.label}
-                                        </Link>
-                                    );
-                                })}
-                            </nav>
-                        </div>
-                        <div className="border-t p-4">
-                            <button
-                                onClick={() => {
-                                    // Clear cookie
-                                    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-                                    localStorage.removeItem("token");
-                                    localStorage.removeItem("user");
-                                    window.location.href = "/login";
-                                }}
-                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
-                            >
-                                <LogOut className="h-4 w-4" />
-                                Logout
-                            </button>
-                        </div>
-                    </aside>
-                </>
-            )}
+            <AnimatePresence>
+                {mobileOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                            onClick={onClose}
+                        />
+                        <motion.aside
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed left-0 top-0 bottom-0 w-64 flex-col border-r bg-card z-50 md:hidden"
+                        >
+                            <div className="flex h-16 items-center justify-between border-b px-6">
+                                <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
+                                    <div className="relative h-8 w-8">
+                                        <Image src="/images/logo.png" alt="HSA Logo" fill className="object-contain" />
+                                    </div>
+                                    <span>HSA Portal</span>
+                                </Link>
+                                <button onClick={onClose} className="p-2 hover:bg-accent rounded-md">
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto py-4">
+                                <nav className="grid gap-1 px-2">
+                                    {navItems.map((item, index) => {
+                                        const isActive = pathname === item.href;
+                                        return (
+                                            <Link
+                                                key={index}
+                                                href={item.href}
+                                                onClick={onClose}
+                                                className={cn(
+                                                    "flex items-center gap-3 rounded-lg px-3 py-3 text-base font-medium transition-colors",
+                                                    isActive
+                                                        ? "bg-primary/10 text-primary"
+                                                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                                )}
+                                            >
+                                                <item.icon className="h-5 w-5" />
+                                                {item.label}
+                                            </Link>
+                                        );
+                                    })}
+                                </nav>
+                            </div>
+                            <div className="border-t p-4">
+                                <button
+                                    onClick={() => {
+                                        document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+                                        localStorage.removeItem("token");
+                                        localStorage.removeItem("user");
+                                        window.location.href = "/login";
+                                    }}
+                                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Logout
+                                </button>
+                            </div>
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
         </>
     );
 }
