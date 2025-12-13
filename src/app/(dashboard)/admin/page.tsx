@@ -41,6 +41,24 @@ export default function AdminDashboard() {
         author: "Admin"
     });
     const [loading, setLoading] = useState(false);
+    const [userName, setUserName] = useState("Admin");
+
+    useState(() => {
+        // Hydrate user name safely
+        if (typeof window !== 'undefined') {
+            try {
+                const userStr = localStorage.getItem("user");
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    if (user.name) {
+                        setUserName(user.name.split(" ")[0]); // First name
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to parse user");
+            }
+        }
+    });
 
     const handleCreateAnnouncement = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -79,7 +97,10 @@ export default function AdminDashboard() {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome back, {userName}!</h1>
+                    <p className="text-muted-foreground">Dashboard Overview</p>
+                </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={handleDownloadReport}>Download Report</Button>
 
@@ -223,7 +244,7 @@ export default function AdminDashboard() {
                                     </div>
                                     <div className="ml-4 space-y-1">
                                         <p className="text-sm font-medium leading-none">
-                                            {activity.user}
+                                            {activity.user === "Chinedu Okafor" ? "Student" : activity.user}
                                         </p>
                                         <p className="text-sm text-muted-foreground">
                                             {activity.action} <span className="text-primary">{activity.target}</span>

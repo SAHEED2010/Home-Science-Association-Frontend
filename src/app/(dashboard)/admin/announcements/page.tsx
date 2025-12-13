@@ -32,6 +32,7 @@ export default function AnnouncementsPage() {
     const [loading, setLoading] = useState(true);
     const [createOpen, setCreateOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -62,8 +63,16 @@ export default function AnnouncementsPage() {
         e.preventDefault();
         setSubmitting(true);
         try {
-            await announcementsAPI.create(formData);
+            if (editingId) {
+                await announcementsAPI.update(editingId, formData);
+                alert("Announcement updated successfully!");
+            } else {
+                await announcementsAPI.create(formData);
+                alert("Announcement created successfully!");
+            }
+
             setCreateOpen(false);
+            setEditingId(null);
             setFormData({
                 title: "",
                 content: "",
@@ -72,12 +81,23 @@ export default function AnnouncementsPage() {
                 sendViaSMS: false,
             });
             fetchAnnouncements();
-            alert("Announcement created successfully!");
         } catch (error: any) {
-            alert(error.response?.data?.message || "Failed to create announcement");
+            alert(error.response?.data?.message || `Failed to ${editingId ? 'update' : 'create'} announcement`);
         } finally {
             setSubmitting(false);
         }
+    };
+
+    const handleEdit = (announcement: any) => {
+        setEditingId(announcement._id);
+        setFormData({
+            title: announcement.title,
+            content: announcement.content,
+            targetAudience: announcement.targetAudience,
+            sendViaEmail: false, // Default to false on edit to avoid accidental resend
+            sendViaSMS: false,
+        });
+        setCreateOpen(true);
     };
 
     const handleDelete = async (id: string) => {
@@ -90,6 +110,18 @@ export default function AnnouncementsPage() {
         }
     };
 
+    const openCreate = () => {
+        setEditingId(null);
+        setFormData({
+            title: "",
+            content: "",
+            targetAudience: "all",
+            sendViaEmail: false,
+            sendViaSMS: false,
+        });
+        setCreateOpen(true);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -99,16 +131,16 @@ export default function AnnouncementsPage() {
                 </div>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button onClick={openCreate}>
                             <Plus className="mr-2 h-4 w-4" /> New Announcement
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[525px]">
                         <form onSubmit={handleCreate}>
                             <DialogHeader>
-                                <DialogTitle>Create Announcement</DialogTitle>
+                                <DialogTitle>{editingId ? "Edit Announcement" : "Create Announcement"}</DialogTitle>
                                 <DialogDescription>
-                                    Send a new update. You can choose to notify via Email or SMS.
+                                    {editingId ? "Update existing announcement details." : "Send a new update. You can choose to notify via Email or SMS."}
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4">
@@ -150,33 +182,35 @@ export default function AnnouncementsPage() {
                                         rows={5}
                                     />
                                 </div>
-                                <div className="flex flex-col gap-3 p-3 bg-muted/50 rounded-lg">
-                                    <Label className="text-sm font-semibold mb-1">Notification Options</Label>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="email"
-                                            checked={formData.sendViaEmail}
-                                            onCheckedChange={(checked) => setFormData({ ...formData, sendViaEmail: checked as boolean })}
-                                        />
-                                        <Label htmlFor="email" className="flex items-center gap-2 cursor-pointer font-normal">
-                                            <Mail className="h-4 w-4" /> Send Email Notification
-                                        </Label>
+                                {!editingId && (
+                                    <div className="flex flex-col gap-3 p-3 bg-muted/50 rounded-lg">
+                                        <Label className="text-sm font-semibold mb-1">Notification Options</Label>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="email"
+                                                checked={formData.sendViaEmail}
+                                                onCheckedChange={(checked) => setFormData({ ...formData, sendViaEmail: checked as boolean })}
+                                            />
+                                            <Label htmlFor="email" className="flex items-center gap-2 cursor-pointer font-normal">
+                                                <Mail className="h-4 w-4" /> Send Email Notification
+                                            </Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id="sms"
+                                                checked={formData.sendViaSMS}
+                                                onCheckedChange={(checked) => setFormData({ ...formData, sendViaSMS: checked as boolean })}
+                                            />
+                                            <Label htmlFor="sms" className="flex items-center gap-2 cursor-pointer font-normal">
+                                                <MessageSquare className="h-4 w-4" /> Send SMS Notification (Termii)
+                                            </Label>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id="sms"
-                                            checked={formData.sendViaSMS}
-                                            onCheckedChange={(checked) => setFormData({ ...formData, sendViaSMS: checked as boolean })}
-                                        />
-                                        <Label htmlFor="sms" className="flex items-center gap-2 cursor-pointer font-normal">
-                                            <MessageSquare className="h-4 w-4" /> Send SMS Notification (Termii)
-                                        </Label>
-                                    </div>
-                                </div>
+                                )}
                             </div>
                             <DialogFooter>
                                 <Button type="submit" disabled={submitting}>
-                                    {submitting ? "Broadcasting..." : "Post Announcement"}
+                                    {submitting ? (editingId ? "Updating..." : "Broadcasting...") : (editingId ? "Update Announcement" : "Post Announcement")}
                                 </Button>
                             </DialogFooter>
                         </form>
@@ -189,7 +223,7 @@ export default function AnnouncementsPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {announcements.map((announcement: any) => (
-                        <Card key={announcement._id} className="relative">
+                        <Card key={announcement._id} className="relative group">
                             <CardHeader>
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
@@ -204,14 +238,24 @@ export default function AnnouncementsPage() {
                                             </span>
                                         </CardDescription>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-destructive hover:text-destructive/90 -mt-2 -mr-2"
-                                        onClick={() => handleDelete(announcement._id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <div className="flex gap-1 -mt-2 -mr-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                            onClick={() => handleEdit(announcement)}
+                                        >
+                                            <MessageSquare className="h-4 w-4" /> {/* Or Pencil Icon if available, reusing MessageSquare for now or standard Edit icon */}
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive/90"
+                                            onClick={() => handleDelete(announcement._id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>

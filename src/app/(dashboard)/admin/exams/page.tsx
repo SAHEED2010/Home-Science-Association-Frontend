@@ -31,8 +31,9 @@ export default function ExamsPage() {
     const [courses, setCourses] = useState([]); // Subjects
     const [loading, setLoading] = useState(true);
 
-    // Create Exam State
+    // Create/Edit Exam State
     const [createOpen, setCreateOpen] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         title: "",
         type: "Main Exam",
@@ -74,8 +75,16 @@ export default function ExamsPage() {
     const handleCreateExam = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await examsAPI.create(formData);
+            if (editingId) {
+                await examsAPI.update(editingId, formData);
+                alert("Exam updated successfully!");
+            } else {
+                await examsAPI.create(formData);
+                alert("Exam scheduled successfully!");
+            }
+
             setCreateOpen(false);
+            setEditingId(null);
             setFormData({
                 title: "",
                 type: "Main Exam",
@@ -86,12 +95,50 @@ export default function ExamsPage() {
                 totalMarks: 100
             });
             fetchInitialData();
-            alert("Exam scheduled successfully!");
         } catch (error: any) {
-            alert(error.response?.data?.message || "Failed to create exam");
+            alert(error.response?.data?.message || `Failed to ${editingId ? 'update' : 'create'} exam`);
         }
     };
 
+    const handleEdit = (exam: any) => {
+        setEditingId(exam._id);
+        setFormData({
+            title: exam.title,
+            type: exam.type || "Main Exam",
+            subject: exam.subject?._id || exam.subject,
+            class: exam.class?._id || exam.class,
+            startDate: exam.startDate ? new Date(exam.startDate).toISOString().split('T')[0] : "",
+            endDate: exam.endDate ? new Date(exam.endDate).toISOString().split('T')[0] : "",
+            totalMarks: exam.totalMarks
+        });
+        setCreateOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this exam? This will also delete all associated results.")) return;
+        try {
+            await examsAPI.delete(id);
+            setExams(exams.filter((e: any) => e._id !== id));
+        } catch (error: any) {
+            alert("Failed to delete exam");
+        }
+    };
+
+    const openCreate = () => {
+        setEditingId(null);
+        setFormData({
+            title: "",
+            type: "Main Exam",
+            subject: "",
+            class: "",
+            startDate: "",
+            endDate: "",
+            totalMarks: 100
+        });
+        setCreateOpen(true);
+    };
+
+    // ... grading handlers remain unchanged ...
     const handleLoadStudents = async () => {
         if (!selectedExam) return;
         setGradingLoading(true);
@@ -168,14 +215,14 @@ export default function ExamsPage() {
                     <div className="flex justify-end">
                         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                             <DialogTrigger asChild>
-                                <Button>
+                                <Button onClick={openCreate}>
                                     <Plus className="mr-2 h-4 w-4" /> Schedule Exam
                                 </Button>
                             </DialogTrigger>
                             <DialogContent className="sm:max-w-[425px]">
                                 <form onSubmit={handleCreateExam}>
                                     <DialogHeader>
-                                        <DialogTitle>Schedule New Exam</DialogTitle>
+                                        <DialogTitle>{editingId ? "Edit Exam" : "Schedule New Exam"}</DialogTitle>
                                     </DialogHeader>
                                     <div className="grid gap-4 py-4">
                                         <div className="space-y-2">
@@ -185,7 +232,7 @@ export default function ExamsPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label>Class</Label>
-                                                <Select onValueChange={val => setFormData({ ...formData, class: val })}>
+                                                <Select value={formData.class} onValueChange={val => setFormData({ ...formData, class: val })}>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select Class" />
                                                     </SelectTrigger>
@@ -198,7 +245,7 @@ export default function ExamsPage() {
                                             </div>
                                             <div className="space-y-2">
                                                 <Label>Subject</Label>
-                                                <Select onValueChange={val => setFormData({ ...formData, subject: val })}>
+                                                <Select value={formData.subject} onValueChange={val => setFormData({ ...formData, subject: val })}>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Select Subject" />
                                                     </SelectTrigger>
@@ -213,11 +260,11 @@ export default function ExamsPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="start">Start Date</Label>
-                                                <Input id="start" type="date" onChange={e => setFormData({ ...formData, startDate: e.target.value })} required />
+                                                <Input id="start" type="date" value={formData.startDate} onChange={e => setFormData({ ...formData, startDate: e.target.value })} required />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="end">End Date</Label>
-                                                <Input id="end" type="date" onChange={e => setFormData({ ...formData, endDate: e.target.value })} required />
+                                                <Input id="end" type="date" value={formData.endDate} onChange={e => setFormData({ ...formData, endDate: e.target.value })} required />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
@@ -226,7 +273,7 @@ export default function ExamsPage() {
                                         </div>
                                     </div>
                                     <div className="flex justify-end">
-                                        <Button type="submit">Schedule Exam</Button>
+                                        <Button type="submit">{editingId ? "Update Exam" : "Schedule Exam"}</Button>
                                     </div>
                                 </form>
                             </DialogContent>
@@ -235,10 +282,22 @@ export default function ExamsPage() {
 
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {exams.map((exam: any) => (
-                            <Card key={exam._id}>
+                            <Card key={exam._id} className="relative group">
                                 <CardHeader>
-                                    <CardTitle>{exam.title}</CardTitle>
-                                    <CardDescription>{exam.class?.name} • {exam.subject?.title}</CardDescription>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <CardTitle>{exam.title}</CardTitle>
+                                            <CardDescription>{exam.class?.name} • {exam.subject?.title}</CardDescription>
+                                        </div>
+                                        <div className="flex gap-1 -mt-1 -mr-1">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => handleEdit(exam)}>
+                                                <BookOpen className="h-4 w-4" /> {/* Reusing Icon as Edit/View for now */}
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/90" onClick={() => handleDelete(exam._id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-sm space-y-2">
@@ -258,6 +317,7 @@ export default function ExamsPage() {
                         ))}
                     </div>
                 </TabsContent>
+
 
                 {/* GRADING TAB */}
                 <TabsContent value="grading" className="space-y-6">

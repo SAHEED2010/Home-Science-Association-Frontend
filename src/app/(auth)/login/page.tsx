@@ -27,6 +27,8 @@ export default function LoginPage() {
         setLoading(true);
         setError("");
 
+        let hasError = false;
+
         try {
             // Payload depends on step
             const payload = {
@@ -60,14 +62,15 @@ export default function LoginPage() {
             else router.push("/");
 
         } catch (err: any) {
+            hasError = true;
             if (err.code === "ERR_NETWORK" || !err.response) {
                 setError("No internet connection. Please check your network and try again.");
             } else {
                 setError(err.response?.data?.message || "Login failed. Please check your credentials.");
             }
         } finally {
-            if (step === "login" && !error) {
-                // Keep loading true if just switching steps? No, we set False if 2fa required.
+            if (step === "login" && !hasError) {
+                // Keep loading true while redirecting
             } else {
                 setLoading(false);
             }
