@@ -44,6 +44,7 @@ const teacherNavItems = [
     { label: "My Classes", href: "/teacher/classes", icon: Users },
     { label: "Resources", href: "/teacher/resources", icon: Video },
     { label: "Assignments", href: "/teacher/assignments", icon: FileText },
+    { label: "Grading", href: "/teacher/results", icon: GraduationCap },
     { label: "Attendance", href: "/teacher/attendance", icon: CalendarCheck },
     { label: "Settings", href: "/teacher/settings", icon: Settings },
 ];

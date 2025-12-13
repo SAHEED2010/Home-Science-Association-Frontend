@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CLASSES } from "@/lib/data";
 import { Users, BookOpen, Plus, ClipboardList } from "lucide-react";
+import Link from "next/link";
 
 export default function TeacherDashboard() {
     return (
@@ -72,7 +73,9 @@ export default function TeacherDashboard() {
                             </div>
                             <div className="flex gap-2">
                                 <Button size="sm" className="w-full" variant="outline">View Students</Button>
-                                <Button size="sm" className="w-full">Gradebook</Button>
+                                <Link href="/teacher/results" className="w-full">
+                                    <Button size="sm" className="w-full">Gradebook</Button>
+                                </Link>
                             </div>
                         </CardContent>
                     </Card>
